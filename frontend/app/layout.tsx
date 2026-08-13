@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OpenRouter Chatbot",
+  title: "Chatbot",
   description: "A minimal chat interface powered by OpenRouter",
 };
 
