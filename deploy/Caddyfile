@@ -1,8 +1,8 @@
-{$DOMAIN::80} {
-	# No DOMAIN set -> binds to plain ":80", so Caddy never attempts automatic
-	# HTTPS (which requires a real hostname to issue/present a matching cert
-	# for). Set DOMAIN once you have a real domain pointed at this VM, and
-	# Caddy will switch to auto-provisioned Let's Encrypt HTTPS on its own.
+{$DOMAIN} {
+	# DOMAIN is resolved by docker-compose.yml (defaults to ":80" — plain
+	# HTTP, no auto-HTTPS attempt — when unset). Set DOMAIN in .env once you
+	# have a real hostname pointed at this VM to get automatic Let's Encrypt
+	# HTTPS instead.
 	encode gzip
 
 	handle /api/* {

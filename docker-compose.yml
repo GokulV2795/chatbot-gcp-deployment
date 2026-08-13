@@ -14,11 +14,15 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      # No default here on purpose: leaving DOMAIN unset lets the Caddyfile's
-      # own {$DOMAIN::80} default kick in (plain HTTP, no auto-HTTPS attempt).
-      # Defaulting to "localhost" here would override that and break TLS for
-      # anyone hitting the VM's bare IP (SNI won't match "localhost").
-      - DOMAIN=${DOMAIN}
+      # Resolved here (Compose's ${VAR:-default} treats unset AND empty the
+      # same) rather than in the Caddyfile: Caddy's own {$VAR:default} only
+      # falls back when the variable is completely absent from the process
+      # environment, and Compose always injects DOMAIN into the container
+      # (as an empty string if unset) — so a Caddyfile-side default would
+      # silently never trigger and Caddy would crash-loop on an empty
+      # site address. ":80" = plain HTTP, no auto-HTTPS attempted (correct
+      # when there's no real hostname to get a cert for).
+      - DOMAIN=${DOMAIN:-:80}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
