@@ -15,11 +15,11 @@ REPO_NAME="chatbot"
 VM_NAME="chatbot-vm"
 VM_MACHINE_TYPE="e2-small"        # 2 vCPU (burstable) / 2GB RAM. e2-micro (1GB) is cheaper
                                    # / free-tier eligible but tight for Next.js + FastAPI + Caddy.
-GITHUB_ORG="your-github-org"
-GITHUB_REPO="your-repo-name"
+GITHUB_ORG="GokulV2795"
+GITHUB_REPO="chatbot-gcp-deployment"
 GH_DEPLOY_SA="github-deployer"    # service account GitHub Actions impersonates
-WIF_POOL="github-pool"
-WIF_PROVIDER="github-provider"
+WIF_POOL="github-pool"            # reused an existing pool in this project if one's already there
+WIF_PROVIDER="chatbot-provider"   # distinct provider so we don't touch other repos' trust config
 # ---------------------
 
 gcloud config set project "$PROJECT_ID"
@@ -58,10 +58,13 @@ for ROLE in \
 done
 
 # 4. Workload Identity Federation: let GitHub Actions impersonate GH_SA_EMAIL
-#    using a short-lived OIDC token, scoped to this exact repo.
+#    using a short-lived OIDC token, scoped to this exact repo. Reuses an
+#    existing pool of this name if the project already has one (e.g. from
+#    other CI/CD in this project) — only fails loudly on unexpected errors.
 gcloud iam workload-identity-pools create "$WIF_POOL" \
   --location=global \
-  --display-name="GitHub Actions pool"
+  --display-name="GitHub Actions pool" \
+  || gcloud iam workload-identity-pools describe "$WIF_POOL" --location=global >/dev/null
 
 gcloud iam workload-identity-pools providers create-oidc "$WIF_PROVIDER" \
   --location=global \
