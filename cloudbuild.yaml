@@ -2,12 +2,16 @@
 # Triggered by the "Build & Push" GitHub Actions job (see .github/workflows/deploy.yml).
 #
 # Expected substitutions:
-#   _REGION            e.g. us-central1
 #   _REPO_PATH         e.g. us-central1-docker.pkg.dev/PROJECT_ID/chatbot
 #   _API_BASE_URL       baked into the frontend bundle, defaults to /api (same-origin via Caddy)
+#   _TAG                image tag, e.g. a short git SHA. NOTE: Cloud Build's builtin
+#                       $SHORT_SHA is only populated for repo-trigger-based builds, not
+#                       for `gcloud builds submit` from an uploaded tarball (which is how
+#                       GitHub Actions invokes this) — so it must be passed explicitly.
 
 substitutions:
   _API_BASE_URL: "/api"
+  _TAG: "latest"
 
 steps:
   - id: build-backend
@@ -15,7 +19,7 @@ steps:
     args:
       - build
       - -t
-      - ${_REPO_PATH}/backend:$SHORT_SHA
+      - ${_REPO_PATH}/backend:${_TAG}
       - -t
       - ${_REPO_PATH}/backend:latest
       - ./backend
@@ -28,16 +32,16 @@ steps:
       - --build-arg
       - NEXT_PUBLIC_API_BASE_URL=${_API_BASE_URL}
       - -t
-      - ${_REPO_PATH}/frontend:$SHORT_SHA
+      - ${_REPO_PATH}/frontend:${_TAG}
       - -t
       - ${_REPO_PATH}/frontend:latest
       - ./frontend
     waitFor: ["-"]
 
 images:
-  - ${_REPO_PATH}/backend:$SHORT_SHA
+  - ${_REPO_PATH}/backend:${_TAG}
   - ${_REPO_PATH}/backend:latest
-  - ${_REPO_PATH}/frontend:$SHORT_SHA
+  - ${_REPO_PATH}/frontend:${_TAG}
   - ${_REPO_PATH}/frontend:latest
 
 options:

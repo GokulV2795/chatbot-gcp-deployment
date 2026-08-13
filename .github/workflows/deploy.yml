@@ -36,7 +36,7 @@ jobs:
         run: |
           gcloud builds submit \
             --config cloudbuild.yaml \
-            --substitutions=_REPO_PATH="${REPO_PATH}",_API_BASE_URL="/api" \
+            --substitutions=_REPO_PATH="${REPO_PATH}",_API_BASE_URL="/api",_TAG="${GITHUB_SHA::7}" \
             --project "${{ vars.GCP_PROJECT_ID }}"
 
   deploy:
