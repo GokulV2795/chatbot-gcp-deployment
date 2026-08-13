@@ -1,4 +1,8 @@
-{$DOMAIN:localhost} {
+{$DOMAIN::80} {
+	# No DOMAIN set -> binds to plain ":80", so Caddy never attempts automatic
+	# HTTPS (which requires a real hostname to issue/present a matching cert
+	# for). Set DOMAIN once you have a real domain pointed at this VM, and
+	# Caddy will switch to auto-provisioned Let's Encrypt HTTPS on its own.
 	encode gzip
 
 	handle /api/* {
