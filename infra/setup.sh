@@ -49,11 +49,15 @@ GH_SA_EMAIL="${GH_DEPLOY_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 # looks: some projects' org policy blocks the Cloud Build default source
 # bucket ([PROJECT]_cloudbuild) without it, which otherwise fails as
 # "forbidden from accessing the bucket" on `gcloud builds submit`.
+# osAdminLogin (not plain osLogin) is required because the deploy step runs
+# `sudo docker compose ...` over a non-interactive SSH session — plain
+# osLogin grants a POSIX account but not passwordless sudo, so `sudo` fails
+# with "a terminal is required to read the password".
 for ROLE in \
   roles/cloudbuild.builds.editor \
   roles/artifactregistry.writer \
   roles/iap.tunnelResourceAccessor \
-  roles/compute.osLogin \
+  roles/compute.osAdminLogin \
   roles/iam.serviceAccountUser \
   roles/storage.admin; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
@@ -121,7 +125,7 @@ gcloud compute instances create "$VM_NAME" \
   --service-account="$VM_SA_EMAIL" \
   --scopes=cloud-platform \
   --metadata-from-file=startup-script=infra/vm-startup.sh \
-  --metadata=artifact-registry-region="$REGION" \
+  --metadata=artifact-registry-region="$REGION",enable-oslogin=TRUE \
   --boot-disk-size=20GB
   # Gets an ephemeral external IP by default — Caddy on the VM terminates HTTP(S)
   # directly, no load balancer needed. Reserve a static IP instead if you want a
