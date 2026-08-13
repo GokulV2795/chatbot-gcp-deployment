@@ -1,0 +1,45 @@
+# Builds the backend and frontend images and pushes both to Artifact Registry.
+# Triggered by the "Build & Push" GitHub Actions job (see .github/workflows/deploy.yml).
+#
+# Expected substitutions:
+#   _REGION            e.g. us-central1
+#   _REPO_PATH         e.g. us-central1-docker.pkg.dev/PROJECT_ID/chatbot
+#   _API_BASE_URL       baked into the frontend bundle, defaults to /api (same-origin via Caddy)
+
+substitutions:
+  _API_BASE_URL: "/api"
+
+steps:
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - ${_REPO_PATH}/backend:$SHORT_SHA
+      - -t
+      - ${_REPO_PATH}/backend:latest
+      - ./backend
+    waitFor: ["-"]
+
+  - id: build-frontend
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - NEXT_PUBLIC_API_BASE_URL=${_API_BASE_URL}
+      - -t
+      - ${_REPO_PATH}/frontend:$SHORT_SHA
+      - -t
+      - ${_REPO_PATH}/frontend:latest
+      - ./frontend
+    waitFor: ["-"]
+
+images:
+  - ${_REPO_PATH}/backend:$SHORT_SHA
+  - ${_REPO_PATH}/backend:latest
+  - ${_REPO_PATH}/frontend:$SHORT_SHA
+  - ${_REPO_PATH}/frontend:latest
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_MEDIUM

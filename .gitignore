@@ -1,0 +1,47 @@
+# Environment
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.venv/
+backend/venv/
+backend/*.egg-info/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.ruff_cache/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.turbo/
+frontend/next-env.d.ts
+# Auto-written by `next dev` on every run (Next.js 16 agent guidance notes) — not project source.
+frontend/AGENTS.md
+frontend/CLAUDE.md
+
+# GCP / secrets
+*.json
+!package*.json
+!tsconfig*.json
+!cloudbuild*.json
+gcp-key.json
+.gcp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Crash dumps
+*.stackdump

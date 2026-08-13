@@ -1,0 +1,42 @@
+# Production compose file used on the VM. Pulls pre-built images from Artifact
+# Registry (built by Cloud Build) rather than building on the VM itself, to keep
+# the single VM's CPU/RAM footprint minimal.
+#
+# Requires a .env file (see .env.example) with at least:
+#   OPENROUTER_API_KEY, GCP_REGION, GCP_PROJECT_ID, ARTIFACT_REGISTRY_REPO
+# Optional: DOMAIN (for Caddy auto-HTTPS), IMAGE_TAG (defaults to "latest")
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  frontend:
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPO}/frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "3000"
+
+  backend:
+    image: ${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REGISTRY_REPO}/backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "8000"
+    env_file:
+      - .env
+
+volumes:
+  caddy_data:
+  caddy_config:

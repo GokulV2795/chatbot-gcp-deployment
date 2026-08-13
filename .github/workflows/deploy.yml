@@ -1,0 +1,68 @@
+name: Deploy
+
+# Runs on every push to main. Pair this with a branch-protection rule that
+# requires the CI workflow to pass before merging, so main is always deployable.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write # required for keyless auth via Workload Identity Federation
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REPO_PATH: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & push images via Cloud Build
+        run: |
+          gcloud builds submit \
+            --config cloudbuild.yaml \
+            --substitutions=_REPO_PATH="${REPO_PATH}",_API_BASE_URL="/api" \
+            --project "${{ vars.GCP_PROJECT_ID }}"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Roll out to VM
+        # GCP_PROJECT_ID / GCP_REGION / ARTIFACT_REGISTRY_REPO / DOMAIN live permanently in the
+        # VM's own /opt/chatbot/.env (set once during infra setup, see infra/vm-startup.sh).
+        # Only IMAGE_TAG changes per deploy, so it's the one thing passed in here.
+        run: |
+          gcloud compute ssh "${{ vars.VM_NAME }}" \
+            --zone "${{ vars.GCP_ZONE }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --tunnel-through-iap \
+            --command "cd /opt/chatbot && \
+              sudo IMAGE_TAG=${GITHUB_SHA::7} docker compose pull && \
+              sudo IMAGE_TAG=${GITHUB_SHA::7} docker compose up -d --remove-orphans && \
+              sudo docker image prune -f"
