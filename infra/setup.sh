@@ -45,13 +45,17 @@ gcloud iam service-accounts create "$GH_DEPLOY_SA" \
 GH_SA_EMAIL="${GH_DEPLOY_SA}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # Minimum roles: submit Cloud Builds, read/write the AR repo, and SSH to the
-# VM over IAP (no public SSH port needed).
+# VM over IAP (no public SSH port needed). storage.admin is broader than it
+# looks: some projects' org policy blocks the Cloud Build default source
+# bucket ([PROJECT]_cloudbuild) without it, which otherwise fails as
+# "forbidden from accessing the bucket" on `gcloud builds submit`.
 for ROLE in \
   roles/cloudbuild.builds.editor \
   roles/artifactregistry.writer \
   roles/iap.tunnelResourceAccessor \
   roles/compute.osLogin \
-  roles/iam.serviceAccountUser; do
+  roles/iam.serviceAccountUser \
+  roles/storage.admin; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:${GH_SA_EMAIL}" \
     --role="$ROLE"
