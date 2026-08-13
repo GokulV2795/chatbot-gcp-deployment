@@ -14,7 +14,11 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - DOMAIN=${DOMAIN:-localhost}
+      # No default here on purpose: leaving DOMAIN unset lets the Caddyfile's
+      # own {$DOMAIN::80} default kick in (plain HTTP, no auto-HTTPS attempt).
+      # Defaulting to "localhost" here would override that and break TLS for
+      # anyone hitting the VM's bare IP (SNI won't match "localhost").
+      - DOMAIN=${DOMAIN}
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
